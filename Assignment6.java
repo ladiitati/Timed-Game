@@ -10,11 +10,10 @@ import javax.swing.BoxLayout;
  Tatiana Adams, Ryan Barrett, Matthew Taylor, Rowena Terrado
  7 April 2020
  CST 338 Software Design
- Assignment 5: GUI Low Card Game
- This program is a Low Card Game that uses a swing GUI. This game was built from our Deck of Card program that handles the functionalities of instantiating decks of cards, dealing cards to players, removing/adding cards, and playing cards. For the GUI we created a play window that has 4 panels that displays the users hand, displays the backs of the computers cards, displays the score board and displays the two cards being played by both the user and computer. To play the game the players are dealt 7 cards. Each round both players play a card hoping to have the lowest value resulting in a point to their total score. After each play the players draw a card until the deck runs out. The game continues until all the cards have been played. 
+ Assignment 6
  ***************************************************************/
 
-public class Assignment5 {
+public class Assignment6 {
     static int NUM_CARDS_PER_HAND = 7;
     static int NUM_PLAYERS = 2;
     static JLabel[] computerLabels = new JLabel[NUM_CARDS_PER_HAND];
@@ -291,7 +290,6 @@ class GUICard {
 
     static void loadCardIcons() {
         String path = new String();
-        int i = 0;
 
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 14; k++) {
@@ -692,12 +690,10 @@ class Deck {
     }
 
     public boolean removeCard(Card card) {
-        for (Card cardss : cards) {
-        }
+
         for (int i = 0; i < cards.length; i++) {
             if (cards[i].equals(card)) {
                 cards[i] = cards[topCard - 1];
-
                 topCard--;
                 return true;
             }
