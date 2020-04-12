@@ -48,6 +48,30 @@ public class Assignment6 {
         JLabel playerCardLabel = new JLabel("", JLabel.CENTER);
         JLabel computerCardLabel = new JLabel("", JLabel.CENTER);
         JLabel scoreBoardLabel = new JLabel("", JLabel.CENTER);
+        JLabel timerLabel = new JLabel("Timer:", JLabel.CENTER);
+        JButton timerButton = new JButton("Stop Timer");
+
+        Object syncObject = new Object();
+        Timer timer = new Timer(timerLabel, syncObject);
+
+        // add timer event listeners to timerButton
+        timerButton.addMouseListener(new MouseInputAdapter() {
+            @Override
+            public void mousePressed(MouseEvent click) {
+                boolean shouldRun = timer.getShouldRun();
+
+                if (shouldRun) {
+                    timer.stopTimer();
+                    timerButton.setText("Start Timer");
+                } else {
+                    timer.startTimer();
+                    synchronized (syncObject) {
+                        syncObject.notify();
+                    }
+                    timerButton.setText("Stop Timer");
+                }
+            }
+        });
 
         // CREATE LABELS AND ADD TO PANELS
         // ----------------------------------------------------
@@ -106,9 +130,12 @@ public class Assignment6 {
         myCardTable.pnlPlayArea.add(playerLabel);
         myCardTable.pnlPlayArea.add(computerLabel);
         myCardTable.pnlScoreBoard.add(scoreBoardLabel);
+        myCardTable.pnlScoreBoard.add(timerLabel);
+        myCardTable.pnlScoreBoard.add(timerButton);
 
         // show everything to the user
         myCardTable.setVisible(true);
+        timer.start();
     }
 
     public static void clearHand(Hand playerHand) {
@@ -181,6 +208,121 @@ public class Assignment6 {
     }
 }
 
+class Timer extends Thread {
+    long startTime;
+    boolean shouldRun;
+    JLabel timerLabel;
+    Object syncObject;
+    long timePaused;
+    long totalTimePaused;
+
+    Timer(JLabel timerLabel, Object syncObject) {
+        this.setSyncObject(syncObject);
+        this.setTimerLabel(timerLabel);
+        this.setShouldRun(true);
+        this.setTotalTimePaused(0);
+    }
+
+    public long getTimePaused() {
+        return this.timePaused;
+    }
+
+    public void setTimePaused(long timePaused) {
+        this.timePaused = timePaused;
+    }
+
+    public long getTotalTimePaused() {
+        return this.totalTimePaused;
+    }
+
+    public void setTotalTimePaused(long totalTimePaused) {
+        this.totalTimePaused = totalTimePaused;
+    }
+
+    private void setSyncObject(Object syncObject) {
+        this.syncObject = syncObject;
+    }
+
+    private void setTimerLabel(JLabel timerLabel) {
+        this.timerLabel = timerLabel;
+    }
+
+    public void stopTimer() {
+        this.setShouldRun(false);
+    }
+
+    public void startTimer() {
+        this.setShouldRun(true);
+    }
+
+    public boolean getShouldRun() {
+        return this.shouldRun;
+    }
+
+    private void setShouldRun(boolean shouldRun) {
+        this.shouldRun = shouldRun;
+    }
+
+    private void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    private long getElapsedSeconds() {
+        long elapsedTime = (System.currentTimeMillis() - this.startTime) - this.totalTimePaused;
+        long elapsedSeconds = elapsedTime / 1000;
+        return elapsedSeconds;
+    }
+
+    private long getDisplaySeconds() {
+        return this.getElapsedSeconds() % 60;
+    }
+
+    private long getElapsedMinutes() {
+        return this.getElapsedSeconds() / 60;
+    }
+
+    public void run() {
+        this.setStartTime(System.currentTimeMillis());
+
+        while (true) {
+            if (!this.getShouldRun()) {
+                synchronized (syncObject) {
+                    try {
+                        this.setTimePaused(System.currentTimeMillis());
+                        syncObject.wait();
+                        long currentPausedTime = this.getTotalTimePaused();
+                        this.setTotalTimePaused(
+                                (System.currentTimeMillis() - this.getTimePaused()) + currentPausedTime);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            long elapsedTime = System.currentTimeMillis() - startTime;
+            long timeTillNextDisplayChange = 1000 - (elapsedTime % 1000);
+            try {
+                Thread.sleep(timeTillNextDisplayChange);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            long minutes = this.getElapsedMinutes();
+            long seconds = this.getDisplaySeconds();
+            String displayMinutes = Long.toString(minutes);
+            String displaySeconds = Long.toString(seconds);
+
+            if (minutes < 10) {
+                displayMinutes = "0" + displayMinutes;
+            }
+            if (seconds < 10) {
+                displaySeconds = "0" + displaySeconds;
+            }
+
+            this.timerLabel.setText("Timer: " + displayMinutes + ":" + displaySeconds);
+        }
+    }
+}
+
 // class for tracking player and computer scores
 class ScoreCard {
     private int playerScore;
@@ -239,7 +381,7 @@ class CardTable extends JFrame {
         FlowLayout plyHandLayout = new FlowLayout();
         FlowLayout cmpHandLayout = new FlowLayout();
         GridLayout playAreaLayout = new GridLayout(2, 2);
-        FlowLayout cmpScoreLayout = new FlowLayout();
+        GridLayout cmpScoreLayout = new GridLayout(1, 2);
 
         pnlComputerHand.setLayout(cmpHandLayout);
         pnlHumanHand.setLayout(plyHandLayout);
@@ -258,7 +400,7 @@ class CardTable extends JFrame {
         pnlHumanHand.setAlignmentX(Component.CENTER_ALIGNMENT);
         pnlHumanHand.setPreferredSize(new Dimension(50, 70));
         pnlScoreBoard.setAlignmentX(Component.CENTER_ALIGNMENT);
-        pnlScoreBoard.setPreferredSize(new Dimension(50, 10));
+        pnlScoreBoard.setPreferredSize(new Dimension(20, 10));
         pnlPlayArea.setAlignmentX(Component.CENTER_ALIGNMENT);
         pnlPlayArea.setPreferredSize(new Dimension(50, 150));
 
