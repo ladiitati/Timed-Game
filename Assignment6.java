@@ -61,11 +61,6 @@ class CardController
       }
    }
    
-   void addCard(JPanel panel, Card card)
-   {
-      
-   }
-
    void clickedPlayerCard(int cardIndex)
    {
       System.out.println("cardIndex " + cardIndex);
@@ -91,19 +86,9 @@ class CardController
             if (e.getActionCommand().equals("Can't play card"))
             {
                 System.out.println("Clicked can't play button");
-            	cardModel.setPass(e.getActionCommand());
-            }
-            else if (e.getActionCommand().equals("Button"))
-            {
-               System.out.println("Button");
-            }
-            else if (e.getActionCommand().equals("Player Card"))
-            {
-               System.out.println("Player");
-            }
-            else if (e.getActionCommand().equals("Computer Card"))
-            {
-               System.out.println("Computer");
+            	cardModel.setPass();
+            	cardModel.playerTurnOver();
+            	
             }
             else
             {  
@@ -111,7 +96,7 @@ class CardController
                 System.out.println(e.getActionCommand() + " " + e.getID());
                 if (!e.getActionCommand().equals("PlayArea"))
                 {
-                   cardModel.playCard(e.getActionCommand(), e.getID());
+                   cardModel.playCard(e.getID());
                 }
                 else
                 {
@@ -125,13 +110,16 @@ class CardController
                    //checks if the card is can be played on a stack
                    if(cardModel.getRanking(cardModel.getSelectedCard().getValue(), cardModel.getPlayAreaHand().inspectCard(e.getID()).getValue()) == true){
                       //replaces card in playarea
-                      cardModel.setCard("PlayArea", e.getID(), 
-                         cardModel.getSelectedCard());
+                      cardModel.setCard("PlayArea", e.getID(), cardModel.getSelectedCard());
+                      cardModel.playerTurnOver();
                    }
                 }
 
-                refreshBoard();
             }
+            
+            refreshBoard();
+            cardModel.computerTurn();
+            refreshBoard();
           
          } catch (NumberFormatException ex)
          {
@@ -181,7 +169,7 @@ class CardModel
    public void setCard(String string, int id, Card selectedCard2)
    {
       playAreaHand.setCard(id, selectedCard2);
-      if (playerHandString.equals("Player"))
+      if (isPlayerTurn == true)
       {
          playerHand.playCard(selectedCardIndex);
          this.takeCard(playerHandString);
@@ -224,17 +212,17 @@ class CardModel
       } 
    }
 
-   public void playCard(String actionCommand, int id)
+   public void playCard(int id)
    {
       selectedCardIndex = id;
       
-      if (actionCommand.equals("Player"))
+      if (isPlayerTurn == true)
       {
          playerHandString = "Player";
          selectedCard = playerHand.inspectCard(id);
          System.out.println("Player Card - " + selectedCard);
       }
-      else if (actionCommand.equals("Computer"))
+      else if (isPlayerTurn == false)
       {
          playerHandString = "Computer";
          selectedCard = computerHand.inspectCard(id);
@@ -250,19 +238,25 @@ class CardModel
 	      }
    }
    
-   public void setPass(String actionCommand) {
-	      if (actionCommand.equals("Can't play card"))
+   public void setPass() {
+	      if (isPlayerTurn == true)
 	      {
 	    	 playerPassed = true;
 	    	 humanCantPlay++;
 	         System.out.println("Player has passed"); 
 	      }
-	      else if (actionCommand.equals("Computer"))
+	      else if (isPlayerTurn == false)
 	      {
 	    	  computerPassed = true;
 	    	  computerCantPlay++;
 	    	  System.out.println("Computer has passed"); 
 	      }
+   }
+   
+   public void playerTurnOver() {
+	   if (isPlayerTurn == true) {
+		   isPlayerTurn = false;
+	   }
    }
    
    public void checkTurns () {
@@ -285,11 +279,10 @@ class CardModel
 	  		}
 	  }
    
-   public boolean checkGameEnd() {
+   public void checkGameEnd() {
 	   if (deck.getNumCards() <= 0) {
-		   return true;
+		   
 	   }
-	   return false;
    }
    
    public String getResults() {
@@ -305,19 +298,28 @@ class CardModel
 	        return results;
    }
    
-   public boolean computerTurn() {
+   public void computerTurn() {
 	   //loop through for cards to play
+	   System.out.println("Check if it's computer's turn");
+	   if (isPlayerTurn == false) {
+		   System.out.println("Initiate computer turn");
 	   for (int i = 0; i < computerHand.getNumCards(); i++) {
 		   for (int j = 0; j < 3; j++) {
 			   if (getRanking(computerHand.inspectCard(i).getValue(), playAreaHand.inspectCard(j).getValue()) == true) {
+				   System.out.println("Computer found a card! " + computerHand.inspectCard(i));
+				   playCard(i);
 				   setCard("PlayArea",j, computerHand.inspectCard(i));
 				   computerPassed = false;
-				   return false;
+				   isPlayerTurn = true;
+				   return;
 			   }
 		   }
 	   }
+	   System.out.println("Computer passed...");
 	   computerPassed = true;
-	   return true;
+	   isPlayerTurn = true;
+	   return;
+	   }
    }
    
    public boolean getRanking(char stackVal, char handVal)
@@ -382,12 +384,9 @@ class CardView extends JFrame
    static int MAX_CARDS_PER_HAND = 56;
    static int MAX_PLAYERS = 2; // for now, we only allow 2 person games
    JButton playerPass = new JButton("Can't play card");
-   JButton button = new JButton("Button");
-   JButton playerButton = new JButton("Player Card");
-   JButton computerButton = new JButton("Computer Card");
    
 
-   public JPanel pnlComputerHand, pnlHumanHand, pnlPlayArea, pnlScoreBoard;
+   public JPanel pnlComputerHand, pnlHumanHand, pnlPlayArea, pnlButtons;
 
    private int numCardsPerHand;
    private int numPlayers;
@@ -407,7 +406,7 @@ class CardView extends JFrame
       pnlComputerHand = new JPanel();
       pnlHumanHand = new JPanel();
       pnlPlayArea = new JPanel();
-      pnlScoreBoard = new JPanel();
+      pnlButtons = new JPanel();
 
       TitledBorder playerBorderTitle = 
             BorderFactory.createTitledBorder("Player Hand");
@@ -415,28 +414,22 @@ class CardView extends JFrame
             BorderFactory.createTitledBorder("Play Area");
       TitledBorder computerBorderTitle = 
             BorderFactory.createTitledBorder("Computer Hand");
-      TitledBorder scoreBoardBorderTitle = 
-            BorderFactory.createTitledBorder("Score Board");
 
       FlowLayout plyHandLayout = new FlowLayout();
       FlowLayout cmpHandLayout = new FlowLayout();
       FlowLayout playAreaLayout = new FlowLayout(FlowLayout.CENTER, 50, 50);
-      FlowLayout cmpScoreLayout = new FlowLayout();
+      FlowLayout cmpButtonsLayout = new FlowLayout();
 
       pnlComputerHand.setLayout(cmpHandLayout);
       pnlHumanHand.setLayout(plyHandLayout);
       pnlPlayArea.setLayout(playAreaLayout);
-      pnlScoreBoard.setLayout(cmpScoreLayout);
+      pnlButtons.setLayout(cmpButtonsLayout);
 
       pnlPlayArea.setBorder(playAreaBorderTitle);
       pnlHumanHand.setBorder(playerBorderTitle);
       pnlComputerHand.setBorder(computerBorderTitle);
-      pnlScoreBoard.setBorder(scoreBoardBorderTitle);
-
-      pnlScoreBoard.add(playerPass);
-      pnlScoreBoard.add(button);
-      pnlScoreBoard.add(playerButton);
-      pnlScoreBoard.add(computerButton);
+      
+      pnlButtons.add(playerPass);
 
       this.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.Y_AXIS));
 
@@ -444,15 +437,15 @@ class CardView extends JFrame
       pnlComputerHand.setPreferredSize(new Dimension(50, 70));
       pnlHumanHand.setAlignmentX(Component.CENTER_ALIGNMENT);
       pnlHumanHand.setPreferredSize(new Dimension(50, 70));
-      pnlScoreBoard.setAlignmentX(Component.CENTER_ALIGNMENT);
-      pnlScoreBoard.setPreferredSize(new Dimension(50, 10));
+      pnlButtons.setAlignmentX(Component.CENTER_ALIGNMENT);
+      pnlButtons.setPreferredSize(new Dimension(50, 10));
       pnlPlayArea.setAlignmentX(Component.CENTER_ALIGNMENT);
       pnlPlayArea.setPreferredSize(new Dimension(50, 150));
 
       this.add(pnlComputerHand);
       this.add(pnlPlayArea);
       this.add(pnlHumanHand);
-      this.add(pnlScoreBoard);
+      this.add(pnlButtons);
    }
    
    public void setActionListener(ActionListener listener)
@@ -471,9 +464,6 @@ class CardView extends JFrame
    void addButtonListener(ActionListener listenForButton)
    {
 	  playerPass.addActionListener(listenForButton);
-      button.addActionListener(listenForButton);
-      playerButton.addActionListener(listenForButton);
-      computerButton.addActionListener(listenForButton);
    }
    
    void addActionListener(ActionListener mouseListener)
