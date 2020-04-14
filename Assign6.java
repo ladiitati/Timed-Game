@@ -28,6 +28,10 @@ class CardController
 {
    private CardView cardView;
    private CardModel cardModel;
+   Object syncObject = new Object();
+   JLabel timerLabel = new JLabel("Timer:", JLabel.CENTER);
+   Timer timer = new Timer(timerLabel, syncObject);
+   
 
    public CardController(CardModel cardModel, CardView cardView)
    {
@@ -35,6 +39,10 @@ class CardController
       this.cardView.addActionListener(new ButtonListener());
       this.cardModel = cardModel;
       this.cardView.addButtonListener(new ButtonListener());
+      
+      cardView.setTimer(timerLabel);
+      
+      timer.start();
       
       this.refreshBoard();
    }
@@ -99,39 +107,50 @@ class CardController
             }
             else
             {  
-               //JLabel label = (JLabel) e.getSource();
                System.out.println(e.getActionCommand() + " " + e.getID());
-               //Icon icon = label.getIcon();
-               //JOptionPane.showMessageDialog(label, icon);
-               if (!e.getActionCommand().equals("PlayArea"))
+               if(e.getActionCommand().equals("Start Timer") ||
+                     e.getActionCommand().equals("Stop Timer"))
                {
-                  cardModel.playCard(e.getActionCommand(), e.getID());
-                  //cardModel.takeCard(e.getActionCommand());
+                  boolean shouldRun = timer.getShouldRun();
+
+                  if (shouldRun) 
+                  {
+                      timer.stopTimer();
+                      cardView.timerText("Start Timer");
+                  } 
+                  else 
+                  {
+                      timer.startTimer();
+                      synchronized (syncObject) 
+                      {
+                          syncObject.notify();
+                      }
+                      cardView.timerText("Stop Timer");
+                  }
                }
-               else
+               else if (e.getActionCommand().equals("PlayArea"))
                {
-                  //check if card has been selected
+                  //check if card has been selected -- not implemented
                   cardModel.getPlayAreaHand().inspectCard(e.getID());
                   System.out.println("Player Area Listener ID: " + 
                         e.getID() + " " +
                         cardModel.getPlayAreaHand().inspectCard(e.getID()) +
                         " selectedCard " + cardModel.getSelectedCard());
                   
-                  //play card from e.getActionCommand hand and 
-                  //replace the card from the playArea
-                  //cardModel.setCard("PlayArea", e.getID(), 
-                  //      cardModel.getSelectedCard());
-                  //checks if the card is can be played on a stack
                   if(cardModel.getRanking(
                         cardModel.getSelectedCard().getValue(), 
                         cardModel.getPlayAreaHand().inspectCard(
                               e.getID()).getValue()) == true)
                   {
-                     //replaces card in playarea
+                     //replaces card in playArea
                      cardModel.setCard("PlayArea", e.getID(), 
                         cardModel.getSelectedCard());
                   }
                   
+               }
+               else
+               {
+                  cardModel.playCard(e.getActionCommand(), e.getID());
                }
                refreshBoard();
             }
@@ -304,6 +323,7 @@ class CardView extends JFrame
    JButton button = new JButton("Button");
    JButton playerButton = new JButton("Player Card");
    JButton computerButton = new JButton("Computer Card");
+   JButton timerButton = new JButton("Stop Timer");
    
 
    public JPanel pnlComputerHand, pnlHumanHand, pnlPlayArea, pnlScoreBoard;
@@ -327,6 +347,7 @@ class CardView extends JFrame
       pnlHumanHand = new JPanel();
       pnlPlayArea = new JPanel();
       pnlScoreBoard = new JPanel();
+      JLabel timerLabel = new JLabel("Timer:", JLabel.CENTER);
 
       TitledBorder playerBorderTitle = 
             BorderFactory.createTitledBorder("Player Hand");
@@ -352,9 +373,11 @@ class CardView extends JFrame
       pnlComputerHand.setBorder(computerBorderTitle);
       pnlScoreBoard.setBorder(scoreBoardBorderTitle);
 
-      pnlScoreBoard.add(button);
-      pnlScoreBoard.add(playerButton);
-      pnlScoreBoard.add(computerButton);
+      //pnlScoreBoard.add(button);
+      //pnlScoreBoard.add(playerButton);
+      //pnlScoreBoard.add(computerButton);
+      //pnlScoreBoard.add(timerLabel);
+      pnlScoreBoard.add(timerButton);
 
       this.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.Y_AXIS));
 
@@ -373,6 +396,16 @@ class CardView extends JFrame
       this.add(pnlScoreBoard);
    }
    
+   public void setTimer(JLabel timerLabel)
+   {
+      this.pnlScoreBoard.add(timerLabel);
+   }
+
+   public void timerText(String string)
+   {
+      timerButton.setText(string);
+   }
+
    public void setActionListener(ActionListener listener)
    {
       this.action = listener;
@@ -391,6 +424,7 @@ class CardView extends JFrame
       button.addActionListener(listenForButton);
       playerButton.addActionListener(listenForButton);
       computerButton.addActionListener(listenForButton);
+      timerButton.addActionListener(listenForButton);
    }
    
    void addActionListener(ActionListener mouseListener)
@@ -454,6 +488,121 @@ class CardView extends JFrame
    void displayErrorMessage(String errorMessage)
    {
       JOptionPane.showMessageDialog(this, errorMessage);
+   }
+}
+
+class Timer extends Thread {
+   long startTime;
+   boolean shouldRun;
+   JLabel timerLabel;
+   Object syncObject;
+   long timePaused;
+   long totalTimePaused;
+
+   Timer(JLabel timerLabel, Object syncObject) {
+       this.setSyncObject(syncObject);
+       this.setTimerLabel(timerLabel);
+       this.setShouldRun(true);
+       this.setTotalTimePaused(0);
+   }
+
+   public long getTimePaused() {
+       return this.timePaused;
+   }
+
+   public void setTimePaused(long timePaused) {
+       this.timePaused = timePaused;
+   }
+
+   public long getTotalTimePaused() {
+       return this.totalTimePaused;
+   }
+
+   public void setTotalTimePaused(long totalTimePaused) {
+       this.totalTimePaused = totalTimePaused;
+   }
+
+   private void setSyncObject(Object syncObject) {
+       this.syncObject = syncObject;
+   }
+
+   private void setTimerLabel(JLabel timerLabel) {
+       this.timerLabel = timerLabel;
+   }
+
+   public void stopTimer() {
+       this.setShouldRun(false);
+   }
+
+   public void startTimer() {
+       this.setShouldRun(true);
+   }
+
+   public boolean getShouldRun() {
+       return this.shouldRun;
+   }
+
+   private void setShouldRun(boolean shouldRun) {
+       this.shouldRun = shouldRun;
+   }
+
+   private void setStartTime(long startTime) {
+       this.startTime = startTime;
+   }
+
+   private long getElapsedSeconds() {
+       long elapsedTime = (System.currentTimeMillis() - this.startTime) - this.totalTimePaused;
+       long elapsedSeconds = elapsedTime / 1000;
+       return elapsedSeconds;
+   }
+
+   private long getDisplaySeconds() {
+       return this.getElapsedSeconds() % 60;
+   }
+
+   private long getElapsedMinutes() {
+       return this.getElapsedSeconds() / 60;
+   }
+
+   public void run() {
+       this.setStartTime(System.currentTimeMillis());
+       System.out.println("RUN");
+       while (true) {
+           if (!this.getShouldRun()) {
+               synchronized (syncObject) {
+                   try {
+                       this.setTimePaused(System.currentTimeMillis());
+                       syncObject.wait();
+                       long currentPausedTime = this.getTotalTimePaused();
+                       this.setTotalTimePaused(
+                               (System.currentTimeMillis() - this.getTimePaused()) + currentPausedTime);
+                   } catch (InterruptedException e) {
+                       e.printStackTrace();
+                   }
+               }
+           }
+
+           long elapsedTime = System.currentTimeMillis() - startTime;
+           long timeTillNextDisplayChange = 1000 - (elapsedTime % 1000);
+           try {
+               Thread.sleep(timeTillNextDisplayChange);
+           } catch (InterruptedException e) {
+               e.printStackTrace();
+           }
+           long minutes = this.getElapsedMinutes();
+           long seconds = this.getDisplaySeconds();
+           String displayMinutes = Long.toString(minutes);
+           String displaySeconds = Long.toString(seconds);
+
+           if (minutes < 10) {
+               displayMinutes = "0" + displayMinutes;
+           }
+           if (seconds < 10) {
+               displaySeconds = "0" + displaySeconds;
+           }
+
+           this.timerLabel.setText("Timer: " + displayMinutes + ":" + displaySeconds);
+       }
    }
 }
 
