@@ -102,14 +102,10 @@ class CardController
             }
             else
             {  
-               //JLabel label = (JLabel) e.getSource();
                System.out.println(e.getActionCommand() + " " + e.getID());
-               //Icon icon = label.getIcon();
-               //JOptionPane.showMessageDialog(label, icon);
                if (!e.getActionCommand().equals("PlayArea"))
                {
                   cardModel.playCard(e.getActionCommand(), e.getID());
-                  //cardModel.takeCard(e.getActionCommand());
                }
                else
                {
@@ -119,13 +115,15 @@ class CardController
                         e.getID() + " " +
                         cardModel.getPlayAreaHand().inspectCard(e.getID()) +
                         " selectedCard " + cardModel.getSelectedCard());
-                  
-                  //play card from e.getActionCommand hand and 
-                  //replace the card from the playArea
-                  cardModel.setCard("PlayArea", e.getID(), 
+
+                  //checks if the card is can be played on a stack
+                  if(cardModel.getRanking(cardModel.getSelectedCard().getValue(), cardModel.getPlayAreaHand().inspectCard(e.getID()).getValue()) == true){
+                     //replaces card in playarea
+                     cardModel.setCard("PlayArea", e.getID(), 
                         cardModel.getSelectedCard());
-                  
+                  }
                }
+
                refreshBoard();
             }
           
@@ -232,6 +230,19 @@ class CardModel
          //computerHand.playCard(id);
          System.out.println("Computer Card - " + selectedCard);
       }
+   }
+   public boolean getRanking(char stackVal, char handVal)
+   {
+      Card cardObj = new Card();
+
+      boolean result = cardObj.ranking(stackVal, handVal);
+
+      if(result == true)
+      {
+         return true;
+      }
+
+      return false;
    }
 
    public Icon getComputerHandIcon(int card)
@@ -678,6 +689,35 @@ class Card
          }
       }
       return false;
+   }
+ 
+   //checks if card val is 1+ 1- the selected card
+   public  boolean ranking(char stackValue, char handValue )
+   {
+      int stack = 0;
+      int hand = 0;
+
+      //sets index vars for comparision
+      for(int i = 0; i < valueRanks.length; i++ )
+      {
+
+         if(stackValue == valueRanks[i])
+         {
+            stack = i;
+         }
+
+         if(handValue == valueRanks[i])
+         {
+            hand = i;
+         }
+      }
+
+      if(hand == (stack + 1) || hand == (stack - 1))
+      {
+         return true;
+      }
+
+       return false;
    }
 
    static Card[] arraySort(Card[] cards, int arraySize)
