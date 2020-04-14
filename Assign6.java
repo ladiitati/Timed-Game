@@ -1,4 +1,24 @@
-import java.awt.Component;
+/**************************************************************
+Tatiana Adams, Ryan Barrett, Matthew Taylor, Rowena Terrado
+14 April 2020
+CST 338 Software Design
+Assignment 6: Timed "Build" Game
+
+This program is a Card Game that uses a swing GUI. This 
+game was built from our Deck of Card program that handles the 
+functionalities of instantiating decks of cards, dealing cards 
+to players, removing/adding cards, and playing cards.  
+To play the game the players are dealt 7 cards. Each round 
+both the player & computer play a card on one of the three 
+stacks that is either one more or one less than the card on 
+the stack. If a user doesnt have a card to play, they can 
+press the I cant play button. This button will skip their turn
+and back to the computer. The same for the computer. After each
+play the players draw a card until the deck runs out.
+The game continues until all the cards have been played. 
+**************************************************************/
+
+ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
