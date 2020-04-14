@@ -93,7 +93,6 @@ class CardController
             else
             {  
                //JLabel label = (JLabel) e.getSource();
-                System.out.println(e.getActionCommand() + " " + e.getID());
                 if (!e.getActionCommand().equals("PlayArea"))
                 {
                    cardModel.playCard(e.getID());
