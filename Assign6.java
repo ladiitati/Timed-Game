@@ -38,7 +38,7 @@ class CardController
       this.cardView.addActionListener(new ButtonListener());
       this.cardModel = cardModel;
       this.cardView.addButtonListener(new ButtonListener());
-      
+
       this.refreshBoard();
    }
    private void refreshBoard()
@@ -54,33 +54,33 @@ class CardController
       {         
          cardView.addComputerCard(cardModel.getComputerHandIcon(i), i);
       }
-      
+
       for(int i = 0; i < cardModel.getPlayAreaHand().getNumCards(); i++)
       {         
          cardView.addPlayAreaCard(cardModel.getPlayAreaHandIcon(i), i);
       }
    }
-   
+
    void addCard(JPanel panel, Card card)
    {
-      
+
    }
 
    void clickedPlayerCard(int cardIndex)
    {
       System.out.println("cardIndex " + cardIndex);
    }
-   
+
    void clickedComputerCard(int cardIndex)
    {
       System.out.println("cardIndex " + cardIndex);
    }
-   
+
    void clickedPlayAreaCard(int cardIndex)
    {
       System.out.println("cardIndex " + cardIndex);
    }
-   
+
    class ButtonListener implements ActionListener
    {
       public void actionPerformed(ActionEvent e)
@@ -102,14 +102,10 @@ class CardController
             }
             else
             {  
-               //JLabel label = (JLabel) e.getSource();
                System.out.println(e.getActionCommand() + " " + e.getID());
-               //Icon icon = label.getIcon();
-               //JOptionPane.showMessageDialog(label, icon);
                if (!e.getActionCommand().equals("PlayArea"))
                {
                   cardModel.playCard(e.getActionCommand(), e.getID());
-                  //cardModel.takeCard(e.getActionCommand());
                }
                else
                {
@@ -119,16 +115,18 @@ class CardController
                         e.getID() + " " +
                         cardModel.getPlayAreaHand().inspectCard(e.getID()) +
                         " selectedCard " + cardModel.getSelectedCard());
-                  
-                  //play card from e.getActionCommand hand and 
-                  //replace the card from the playArea
-                  cardModel.setCard("PlayArea", e.getID(), 
+
+                  //checks if the card is can be played on a stack
+                  if(cardModel.getRanking(cardModel.getSelectedCard().getValue(), cardModel.getPlayAreaHand().inspectCard(e.getID()).getValue()) == true){
+                     //replaces card in playarea
+                     cardModel.setCard("PlayArea", e.getID(), 
                         cardModel.getSelectedCard());
-                  
+                  }
                }
+
                refreshBoard();
             }
-          
+
          } catch (NumberFormatException ex)
          {
             System.out.println(ex);
@@ -150,11 +148,11 @@ class CardModel
    String playerHandString = new String();
    int computerCantPlay = 0;
    int humanCantPlay = 0;
-   
+
    public CardModel()
    {
       deck.shuffle();
-      
+
       //Deal 7 cards to the computer and player hands
       for (int i = 0; i < 7; i++)
       {
@@ -168,7 +166,7 @@ class CardModel
       }
    }
 
-   
+
    public void setCard(String string, int id, Card selectedCard2)
    {
       playAreaHand.setCard(id, selectedCard2);
@@ -188,18 +186,18 @@ class CardModel
    {
       return card.getBackCardIcon();
    }
-   
+
    public boolean placeCard(Card card)
    {
-      
+
       return true;
    }
-   
+
    public Card getSelectedCard()
    {
       return selectedCard;
    }
-   
+
    public void takeCard(String hand)
    {
       if (deck.getTopCard() > 0)
@@ -218,7 +216,7 @@ class CardModel
    public void playCard(String actionCommand, int id)
    {
       selectedCardIndex = id;
-      
+
       if (actionCommand.equals("Player"))
       {
          playerHandString = "Player";
@@ -233,6 +231,19 @@ class CardModel
          System.out.println("Computer Card - " + selectedCard);
       }
    }
+   public boolean getRanking(char stackVal, char handVal)
+   {
+      Card cardObj = new Card();
+
+      boolean result = cardObj.ranking(stackVal, handVal);
+
+      if(result == true)
+      {
+         return true;
+      }
+
+      return false;
+   }
 
    public Icon getComputerHandIcon(int card)
    {
@@ -243,37 +254,37 @@ class CardModel
    {
       return getIcon(playerHand.inspectCard(card));
    }
-   
+
    public Icon getPlayAreaHandIcon(int i)
    {
       return getIcon(playAreaHand.inspectCard(i));
    }
-   
+
    public Hand getComputerHand()
    {
       return computerHand;
    }
-   
+
    public Hand getPlayerHand()
    {
       return playerHand;
    }
-   
+
    public Hand getPlayAreaHand()
    {
       return playAreaHand;
    }
-   
+
    public Card getCard()
    {
       return new Card();
    }
-   
+
    public Icon getIcon(Card card)
    {
       return GUICard.getIcon(card);
    }
-   
+
 }
 
 class CardView extends JFrame 
@@ -283,13 +294,13 @@ class CardView extends JFrame
    JButton button = new JButton("Button");
    JButton playerButton = new JButton("Player Card");
    JButton computerButton = new JButton("Computer Card");
-   
+
 
    public JPanel pnlComputerHand, pnlHumanHand, pnlPlayArea, pnlScoreBoard;
 
    private int numCardsPerHand;
    private int numPlayers;
-   
+
    ActionListener action;
 
    public CardView(String title, int numCardsPerHand, int numPlayers)
@@ -351,12 +362,12 @@ class CardView extends JFrame
       this.add(pnlHumanHand);
       this.add(pnlScoreBoard);
    }
-   
+
    public void setActionListener(ActionListener listener)
    {
       this.action = listener;
    }
-   
+
    public void clearHands()
    {
       // TODO Auto-generated method stub
@@ -364,24 +375,24 @@ class CardView extends JFrame
       pnlHumanHand.removeAll();
       pnlPlayArea.removeAll();
    }
-   
+
    void addButtonListener(ActionListener listenForButton)
    {
       button.addActionListener(listenForButton);
       playerButton.addActionListener(listenForButton);
       computerButton.addActionListener(listenForButton);
    }
-   
+
    void addActionListener(ActionListener mouseListener)
    {
       this.action = mouseListener;
    }
-   
+
    public void addPlayAreaCard(Icon cardBack, int i)
    {
       // TODO Auto-generated method stub
       JLabel newCardLable = new JLabel(cardBack);
-      
+
       newCardLable.addMouseListener(new MouseInputAdapter() {
          public void mousePressed(MouseEvent click) {
             ActionEvent e = new ActionEvent((JLabel) click.getSource(), 
@@ -393,13 +404,13 @@ class CardView extends JFrame
       pnlPlayArea.add(newCardLable);
       this.revalidate();
       this.repaint();
-      
+
    }
 
    public void addComputerCard(Icon icon, int index)
    {
       JLabel newCardLable = new JLabel(icon);
-   
+
       newCardLable.addMouseListener(new MouseInputAdapter() {
          public void mousePressed(MouseEvent click) {
             ActionEvent e = new ActionEvent((JLabel) click.getSource(), 
@@ -416,7 +427,7 @@ class CardView extends JFrame
    public void addPlayerCard(Icon icon, int index)
    {
       JLabel newCardLable = new JLabel(icon);
-      
+
       newCardLable.addMouseListener(new MouseInputAdapter() {
          public void mousePressed(MouseEvent click) {
             ActionEvent e = new ActionEvent((JLabel) click.getSource(), 
@@ -424,7 +435,7 @@ class CardView extends JFrame
             action.actionPerformed(e);
          }
       });
-      
+
       pnlHumanHand.add(newCardLable);
       this.revalidate();
       this.repaint();
@@ -680,6 +691,35 @@ class Card
       return false;
    }
 
+   //checks if card val is 1+ 1- the selected card
+   public  boolean ranking(char stackValue, char handValue )
+   {
+      int stack = 0;
+      int hand = 0;
+
+      //sets index vars for comparision
+      for(int i = 0; i < valueRanks.length; i++ )
+      {
+
+         if(stackValue == valueRanks[i])
+         {
+            stack = i;
+         }
+
+         if(handValue == valueRanks[i])
+         {
+            hand = i;
+         }
+      }
+
+      if(hand == (stack + 1) || hand == (stack - 1))
+      {
+         return true;
+      }
+
+       return false;
+   }
+
    static Card[] arraySort(Card[] cards, int arraySize)
    {
       Card temp;
@@ -727,7 +767,7 @@ class Hand
 
       Card newCard = new Card(card.getValue(), card.getSuit());
 //      System.out.println(newCard);
-      
+
       if (numCards > MAX_CARDS)
       {
          return false;
@@ -759,11 +799,11 @@ class Hand
 
       return card;
    }
-   
+
    public void setCard(int cardIndex, Card card)
    {
       myCards[cardIndex] = card;
-      
+
    }
 
    public Card playCard()
