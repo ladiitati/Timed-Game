@@ -20,6 +20,7 @@ The game continues until all the cards have been played.
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -83,32 +84,17 @@ class CardController
       }
    }
 
-   void clickedPlayerCard(int cardIndex)
-   {
-      System.out.println("cardIndex " + cardIndex);
-   }
-
-   void clickedComputerCard(int cardIndex)
-   {
-      System.out.println("cardIndex " + cardIndex);
-   }
-
-   void clickedPlayAreaCard(int cardIndex)
-   {
-      System.out.println("cardIndex " + cardIndex);
-   }
-
    class ButtonListener implements ActionListener
    {
       public void actionPerformed(ActionEvent e)
       {
-         System.out.println(e.getActionCommand() + " " + e.getID());
+         //System.out.println(e.getActionCommand() + " " + e.getID());
 
          try
          {
             if (e.getActionCommand().equals("Can't play card"))
             {
-               System.out.println("Clicked can't play button");
+               //System.out.println("Clicked can't play button");
                cardModel.setPass();
                cardModel.playerTurnOver();
 
@@ -140,12 +126,12 @@ class CardController
                {
                   //check if card has been selected
                   cardModel.getPlayAreaHand().inspectCard(e.getID());
-                  System.out.println("Player selected "+  
-                        cardModel.getSelectedCard() + "; selected Play Area "
-                        + "Index " + e.getID() + ", " +
-                        cardModel.getPlayAreaHand().inspectCard(e.getID()));
+                  //System.out.println("Player selected "+  
+                        //cardModel.getSelectedCard() + "; selected Play Area "
+                        //+ "Index " + e.getID() + ", " +
+                        //cardModel.getPlayAreaHand().inspectCard(e.getID()));
 
-                  //checks if the card is can be played on a stack
+                  //checks if the card can be played on a stack
                   if(cardModel.getRanking(
                         cardModel.getSelectedCard().getValue(), 
                         cardModel.getPlayAreaHand().inspectCard(
@@ -166,6 +152,7 @@ class CardController
 
             refreshBoard();
             cardModel.checkTurns();
+            cardView.updateScoreLabel(cardModel.scoreString());
             refreshBoard();
             boolean endGame = cardModel.checkGameEnd();
 
@@ -273,19 +260,18 @@ class CardModel
       {
          playerHandString = "Player";
          selectedCard = playerHand.inspectCard(id);
-         System.out.println("Player Card - " + selectedCard);
+         //System.out.println("Player Card - " + selectedCard);
       }
       else if (isPlayerTurn == false)
       {
          playerHandString = "Computer";
          selectedCard = computerHand.inspectCard(id);
-         //computerHand.playCard(id);
-         System.out.println("Computer Card - " + selectedCard);
+         //System.out.println("Computer Card - " + selectedCard);
       }
    }
 
    public void resetPlayAreaHand (Hand playAreaHand) {
-      System.out.println("Dealing three new cards to play area...");
+      //System.out.println("Dealing three new cards to play area...");
       playAreaHand.resetHand();
       for (int i = 0; i < 3; i++)
       {
@@ -293,19 +279,28 @@ class CardModel
       }
    }
 
+   //Set "passed" status for current user and increment total amount of passes
    public void setPass() {
       if (isPlayerTurn == true)
       {
          playerPassed = true;
          humanCantPlay++;
-         System.out.println("Player has passed"); 
+         //System.out.println("Player has passed"); 
+         //System.out.println("Player pass count: " + humanCantPlay);
       }
       else if (isPlayerTurn == false)
       {
          computerPassed = true;
          computerCantPlay++;
-         System.out.println("Computer has passed"); 
+         //System.out.println("Computer has passed"); 
+         //System.out.println("Computer pass count: " + computerCantPlay);
       }
+      
+   }
+   
+   public String scoreString() {
+	   String scoreLabel = "Number of Passed Turns - Player: " + humanCantPlay +  ", Computer: " +  computerCantPlay;
+	   return scoreLabel;
    }
 
    public void playerTurnOver() {
@@ -318,24 +313,25 @@ class CardModel
    }
 
    public void checkTurns () {
-      System.out.println("Checking turns...");
+      //System.out.println("Checking turns...");
       if (playerPassed && computerPassed == true) {
-         System.out.println("Both players have passed! Reset play area");
+         //System.out.println("Both players have passed! Reset play area");
          resetPlayAreaHand(playAreaHand);
          playerPassed = false;
          computerPassed = false;
       }
       if (playerPassed == true && computerPassed == false)
       {
-         System.out.println("Player has passed! Computer gets two turns");
+         //System.out.println("Player has passed! Computer gets two turns");
          computerTurn();
          isPlayerTurn = false;
          computerTurn();
          playerPassed = false;
       }
       else if (computerPassed == true && playerPassed == false) {
-         System.out.println("Computer had passed! Player is on an additional turn");
+         //System.out.println("Computer had passed! Player is on an additional turn");
          isPlayerTurn = true;
+         //Once player has completed their turn, computer is allowed to play again
          if (isPlayerTurnDone == true) {
             computerPassed = false;}
       }
@@ -346,35 +342,35 @@ class CardModel
 
    public boolean checkGameEnd() {
       if (deck.getNumCards() <= 0) {
-         System.out.println("No more cards in the deck!");
+         //System.out.println("No more cards in the deck!");
          return true;
       }
       return false;
    }
 
    public String getResults() {
-      String results = "";
+      String results = "No more cards in the deck!\n";
       if (computerCantPlay < humanCantPlay)
-         results = "You lose!";
+         results += "You lose!";
       else if (humanCantPlay < computerCantPlay)
-         results = "You win!";
+         results += "You win!";
       else
-         results = "The game is tied!";
+         results += "The game is tied!";
 
-      results += "\n Player passes: " + humanCantPlay + ", Computer passes: " + computerCantPlay;
+      results += "\nPlayer passes: " + humanCantPlay + ", Computer passes: " + computerCantPlay;
       return results;
    }
 
    public void computerTurn() {
       if (isPlayerTurn == false) {
-         System.out.println("Initiate computer turn.");
+         //System.out.println("Initiate computer turn.");
          for (int i = 0; i < computerHand.getNumCards(); i++) {
             for (int j = 0; j < 3; j++) {
                if (getRanking(computerHand.inspectCard(i).getValue(), playAreaHand.inspectCard(j).getValue()) == true) {
-                  System.out.println("Computer plays a card!");
-                  System.out.println("Computer puts "+  computerHand.inspectCard(i) + " on Play Area Index " + 
-                        j + " over " +
-                        playAreaHand.inspectCard(j));
+                  //System.out.println("Computer plays a card!");
+                  //System.out.println("Computer puts "+  computerHand.inspectCard(i) + " on Play Area Index " + 
+                       // j + " over " +
+                       // playAreaHand.inspectCard(j));
                   playCard(i);
                   setCard("PlayArea",j, computerHand.inspectCard(i));
                   computerPassed = false;
@@ -383,8 +379,9 @@ class CardModel
                }
             }
          }
-         System.out.println("Computer passed...");
+         //System.out.println("Computer passed...");
          computerPassed = true;
+         setPass();
          isPlayerTurn = true;
          isPlayerTurnDone = false;
          return;
@@ -452,14 +449,15 @@ class CardView extends JFrame
 {
    static int MAX_CARDS_PER_HAND = 56;
    static int MAX_PLAYERS = 2; // for now, we only allow 2 person games
-   JButton playerPass = new JButton("Can't play card");
-
-
-   public JPanel pnlComputerHand, pnlHumanHand, pnlPlayArea, pnlButtons;
 
    private int numCardsPerHand;
    private int numPlayers;
+
+   public JPanel pnlComputerHand, pnlHumanHand, pnlPlayArea, pnlButtons;
+   
    JButton timerButton = new JButton("Stop Timer");
+   JButton playerPass = new JButton("Can't play card");
+   JLabel scoreLabel = new JLabel("Number of Passed Turns - Player: 0, Computer: 0", JLabel.CENTER);
 
    ActionListener action;
 
@@ -477,7 +475,6 @@ class CardView extends JFrame
       pnlHumanHand = new JPanel();
       pnlPlayArea = new JPanel();
       pnlButtons = new JPanel();
-      JLabel timerLabel = new JLabel("Timer:", JLabel.CENTER);
 
       TitledBorder playerBorderTitle = 
             BorderFactory.createTitledBorder("Player Hand");
@@ -489,7 +486,7 @@ class CardView extends JFrame
       FlowLayout plyHandLayout = new FlowLayout();
       FlowLayout cmpHandLayout = new FlowLayout();
       FlowLayout playAreaLayout = new FlowLayout(FlowLayout.CENTER, 50, 50);
-      FlowLayout cmpButtonsLayout = new FlowLayout();
+      GridLayout cmpButtonsLayout = new GridLayout(2, 2);
 
       pnlComputerHand.setLayout(cmpHandLayout);
       pnlHumanHand.setLayout(plyHandLayout);
@@ -502,6 +499,7 @@ class CardView extends JFrame
 
       pnlButtons.add(playerPass);
       pnlButtons.add(timerButton);
+      pnlButtons.add(scoreLabel);
 
       this.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.Y_AXIS));
 
@@ -575,9 +573,9 @@ class CardView extends JFrame
 
    public void addComputerCard(Icon icon, int index)
    {
-      JLabel newCardLable = new JLabel(icon);
+      JLabel newCardLabel = new JLabel(icon);
 
-      newCardLable.addMouseListener(new MouseInputAdapter() {
+      newCardLabel.addMouseListener(new MouseInputAdapter() {
          public void mousePressed(MouseEvent click) {
             ActionEvent e = new ActionEvent((JLabel) click.getSource(), 
                   index, "Computer");
@@ -585,16 +583,16 @@ class CardView extends JFrame
          }
       });
 
-      pnlComputerHand.add(newCardLable);
+      pnlComputerHand.add(newCardLabel);
       this.revalidate();
       this.repaint();
    }
 
    public void addPlayerCard(Icon icon, int index)
    {
-      JLabel newCardLable = new JLabel(icon);
+      JLabel newCardLabel = new JLabel(icon);
 
-      newCardLable.addMouseListener(new MouseInputAdapter() {
+      newCardLabel.addMouseListener(new MouseInputAdapter() {
          public void mousePressed(MouseEvent click) {
             ActionEvent e = new ActionEvent((JLabel) click.getSource(), 
                   index, "Player");
@@ -602,9 +600,13 @@ class CardView extends JFrame
          }
       });
 
-      pnlHumanHand.add(newCardLable);
+      pnlHumanHand.add(newCardLabel);
       this.revalidate();
       this.repaint();
+   }
+   
+   public void updateScoreLabel(String score) {
+	   scoreLabel.setText(score);
    }
 
    void displayErrorMessage(String errorMessage)
@@ -693,7 +695,7 @@ class Timer extends Thread {
 
    public void run() {
       this.setStartTime(System.currentTimeMillis());
-      System.out.println("RUN");
+      //System.out.println("RUN");
       while (true) {
          if (!this.getShouldRun()) {
             synchronized (syncObject) {
@@ -1223,7 +1225,7 @@ class Deck
       // Check if cards are still available
       if (topCard < 0)
       {
-         System.out.println("out of cards");
+         //System.out.println("out of cards");
          return null;
       }
       // Move onto next card
