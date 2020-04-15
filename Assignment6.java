@@ -118,7 +118,11 @@ class CardController
             refreshBoard();
             cardModel.checkTurns();
             refreshBoard();
-            cardModel.checkGameEnd();
+            boolean endGame = cardModel.checkGameEnd();
+
+            if(endGame == true){
+               cardView.displayEndScreen(cardModel.getResults());
+            }
           
          } catch (NumberFormatException ex)
          {
@@ -291,10 +295,12 @@ class CardModel
 	  		}
 	  }
    
-   public void checkGameEnd() {
+   public boolean checkGameEnd() {
 	   if (deck.getNumCards() <= 0) {
-		   System.out.println("No more cards in the deck!");
-	   }
+         System.out.println("No more cards in the deck!");
+         return true;
+      }
+      return false;
    }
    
    public String getResults() {
