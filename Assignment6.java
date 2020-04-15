@@ -81,7 +81,9 @@ class CardController {
    class ButtonListener implements ActionListener {
       public void actionPerformed(ActionEvent e) {
          // System.out.println(e.getActionCommand() + " " + e.getID());
-
+         if (cardModel.checkGameEnd() == true) {
+              cardView.displayEndScreen(cardModel.getResults());
+          }
          try {
             if (e.getActionCommand().equals("Can't play card")) {
                // System.out.println("Clicked can't play button");
@@ -128,11 +130,6 @@ class CardController {
             cardModel.checkTurns();
             cardView.updateScoreLabel(cardModel.scoreString());
             refreshBoard();
-            boolean endGame = cardModel.checkGameEnd();
-
-            if (endGame == true) {
-               cardView.displayEndScreen(cardModel.getResults());
-            }
 
          } catch (NumberFormatException ex) {
             System.out.println(ex);
