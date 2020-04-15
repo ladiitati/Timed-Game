@@ -101,8 +101,8 @@ class CardController
                 {
                    //check if card has been selected
                    cardModel.getPlayAreaHand().inspectCard(e.getID());
-                   System.out.println("Player puts "+  cardModel.getSelectedCard() + " on Play Area Index " + 
-                         e.getID() + " over " +
+                   System.out.println("Player selected "+  cardModel.getSelectedCard() + "; selected Play Area Index " + 
+                         e.getID() + ", " +
                          cardModel.getPlayAreaHand().inspectCard(e.getID()));
 
                    //checks if the card is can be played on a stack
@@ -116,8 +116,9 @@ class CardController
             }
             
             refreshBoard();
-            cardModel.computerTurn();
+            cardModel.checkTurns();
             refreshBoard();
+            cardModel.checkGameEnd();
           
          } catch (NumberFormatException ex)
          {
@@ -145,6 +146,7 @@ class CardModel
    boolean playerPassed = false;
    boolean computerPassed = false;
    boolean isPlayerTurn = true;
+   boolean isPlayerTurnDone = false;
    
    public CardModel()
    {
@@ -230,6 +232,8 @@ class CardModel
    }
    
    public void resetPlayAreaHand (Hand playAreaHand) {
+	   System.out.println("Dealing three new cards to play area...");
+	   playAreaHand.resetHand();
 	   for (int i = 0; i < 3; i++)
 	      {
 	         playAreaHand.takeCard(deck.dealCard());
@@ -255,31 +259,41 @@ class CardModel
 	   if (isPlayerTurn == true) {
 		   isPlayerTurn = false;
 	   }
+	   if (isPlayerTurnDone == false) {
+		   isPlayerTurnDone = true;
+	   }
    }
    
    public void checkTurns () {
+	   System.out.println("Checking turns...");
 	   if (playerPassed && computerPassed == true) {
+		   System.out.println("Both players have passed! Reset play area");
 		   resetPlayAreaHand(playAreaHand);
 		   playerPassed = false;
 		   computerPassed = false;
 	   }
 	  	if (playerPassed == true && computerPassed == false)
 	  	{
-	  		//insert code or method for computer's turn but run it twice
+	  		System.out.println("Player has passed! Computer gets two turns");
+	  		computerTurn();
+	  		isPlayerTurn = false;
+	  		computerTurn();
 	  		playerPassed = false;
 	  	}
 	  	else if (computerPassed == true && playerPassed == false) {
-	  		//insert code or method for player's turn but run it twice
-	  		computerPassed = false;
+	  		System.out.println("Computer had passed! Player is on an additional turn");
+	  		isPlayerTurn = true;
+	  		if (isPlayerTurnDone == true) {
+	  			computerPassed = false;}
 	  	}
 	  	else {
-	  		//
+	  		computerTurn();
 	  		}
 	  }
    
    public void checkGameEnd() {
 	   if (deck.getNumCards() <= 0) {
-		   
+		   System.out.println("No more cards in the deck!");
 	   }
    }
    
@@ -317,6 +331,7 @@ class CardModel
 	   System.out.println("Computer passed...");
 	   computerPassed = true;
 	   isPlayerTurn = true;
+	   isPlayerTurnDone = false;
 	   return;
 	   }
    }
