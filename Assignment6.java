@@ -52,7 +52,8 @@ class CardController
       }
       for(int i = 0; i < cardModel.getComputerHand().getNumCards(); i++)
       {         
-         cardView.addComputerCard(cardModel.getComputerHandIcon(i), i);
+         // cardView.addComputerCard(cardModel.getComputerHandIcon(i), i);
+         cardView.addComputerCard(cardModel.getCardBack(), i);
       }
       
       for(int i = 0; i < cardModel.getPlayAreaHand().getNumCards(); i++)
