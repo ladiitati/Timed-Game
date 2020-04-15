@@ -1,31 +1,8 @@
-/**************************************************************
-Tatiana Adams, Ryan Barrett, Matthew Taylor, Rowena Terrado
-14 April 2020
-CST 338 Software Design
-Assignment 6: Timed "Build" Game
-
-This program is a Card Game that uses a swing GUI. This 
-game was built from our Deck of Card program that handles the 
-functionalities of instantiating decks of cards, dealing cards 
-to players, removing/adding cards, and playing cards.  
-To play the game the players are dealt 7 cards. Each round 
-both the player & computer play a card on one of the three 
-stacks that is either one more or one less than the card on 
-the stack. If a user doesnt have a card to play, they can 
-press the I cant play button. This button will skip their turn
-and back to the computer. The same for the computer. After each
-play the players draw a card until the deck runs out.
-The game continues until all the cards have been played. 
-**************************************************************/
-
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ComponentListener;
-import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Random;
@@ -34,7 +11,7 @@ import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.MouseInputAdapter;
 
-public class Assignment6
+public class Assign6
 {
 
    public static void main(String[] args)
@@ -51,6 +28,10 @@ class CardController
 {
    private CardView cardView;
    private CardModel cardModel;
+   Object syncObject = new Object();
+   JLabel timerLabel = new JLabel("Timer:", JLabel.CENTER);
+   Timer timer = new Timer(timerLabel, syncObject);
+   
 
    public CardController(CardModel cardModel, CardView cardView)
    {
@@ -58,7 +39,11 @@ class CardController
       this.cardView.addActionListener(new ButtonListener());
       this.cardModel = cardModel;
       this.cardView.addButtonListener(new ButtonListener());
-
+      
+      cardView.setTimer(timerLabel);
+      
+      timer.start();
+      
       this.refreshBoard();
    }
    private void refreshBoard()
@@ -74,33 +59,33 @@ class CardController
       {         
          cardView.addComputerCard(cardModel.getComputerHandIcon(i), i);
       }
-
+      
       for(int i = 0; i < cardModel.getPlayAreaHand().getNumCards(); i++)
       {         
          cardView.addPlayAreaCard(cardModel.getPlayAreaHandIcon(i), i);
       }
    }
-
+   
    void addCard(JPanel panel, Card card)
    {
-
+      
    }
 
    void clickedPlayerCard(int cardIndex)
    {
       System.out.println("cardIndex " + cardIndex);
    }
-
+   
    void clickedComputerCard(int cardIndex)
    {
       System.out.println("cardIndex " + cardIndex);
    }
-
+   
    void clickedPlayAreaCard(int cardIndex)
    {
       System.out.println("cardIndex " + cardIndex);
    }
-
+   
    class ButtonListener implements ActionListener
    {
       public void actionPerformed(ActionEvent e)
@@ -123,30 +108,53 @@ class CardController
             else
             {  
                System.out.println(e.getActionCommand() + " " + e.getID());
-               if (!e.getActionCommand().equals("PlayArea"))
+               if(e.getActionCommand().equals("Start Timer") ||
+                     e.getActionCommand().equals("Stop Timer"))
                {
-                  cardModel.playCard(e.getActionCommand(), e.getID());
+                  boolean shouldRun = timer.getShouldRun();
+
+                  if (shouldRun) 
+                  {
+                      timer.stopTimer();
+                      cardView.timerText("Start Timer");
+                  } 
+                  else 
+                  {
+                      timer.startTimer();
+                      synchronized (syncObject) 
+                      {
+                          syncObject.notify();
+                      }
+                      cardView.timerText("Stop Timer");
+                  }
                }
-               else
+               else if (e.getActionCommand().equals("PlayArea"))
                {
-                  //check if card has been selected
+                  //check if card has been selected -- not implemented
                   cardModel.getPlayAreaHand().inspectCard(e.getID());
                   System.out.println("Player Area Listener ID: " + 
                         e.getID() + " " +
                         cardModel.getPlayAreaHand().inspectCard(e.getID()) +
                         " selectedCard " + cardModel.getSelectedCard());
-
-                  //checks if the card is can be played on a stack
-                  if(cardModel.getRanking(cardModel.getSelectedCard().getValue(), cardModel.getPlayAreaHand().inspectCard(e.getID()).getValue()) == true){
-                     //replaces card in playarea
+                  
+                  if(cardModel.getRanking(
+                        cardModel.getSelectedCard().getValue(), 
+                        cardModel.getPlayAreaHand().inspectCard(
+                              e.getID()).getValue()) == true)
+                  {
+                     //replaces card in playArea
                      cardModel.setCard("PlayArea", e.getID(), 
                         cardModel.getSelectedCard());
                   }
+                  
                }
-
+               else
+               {
+                  cardModel.playCard(e.getActionCommand(), e.getID());
+               }
                refreshBoard();
             }
-
+          
          } catch (NumberFormatException ex)
          {
             System.out.println(ex);
@@ -168,11 +176,11 @@ class CardModel
    String playerHandString = new String();
    int computerCantPlay = 0;
    int humanCantPlay = 0;
-
+   
    public CardModel()
    {
       deck.shuffle();
-
+      
       //Deal 7 cards to the computer and player hands
       for (int i = 0; i < 7; i++)
       {
@@ -186,7 +194,7 @@ class CardModel
       }
    }
 
-
+   
    public void setCard(String string, int id, Card selectedCard2)
    {
       playAreaHand.setCard(id, selectedCard2);
@@ -206,18 +214,18 @@ class CardModel
    {
       return card.getBackCardIcon();
    }
-
+   
    public boolean placeCard(Card card)
    {
-
+      
       return true;
    }
-
+   
    public Card getSelectedCard()
    {
       return selectedCard;
    }
-
+   
    public void takeCard(String hand)
    {
       if (deck.getTopCard() > 0)
@@ -233,10 +241,24 @@ class CardModel
       } 
    }
 
+   public boolean getRanking(char stackVal, char handVal)
+   {
+      Card cardObj = new Card();
+
+      boolean result = cardObj.ranking(stackVal, handVal);
+
+      if(result == true)
+      {
+         return true;
+      }
+
+      return false;
+   }
+   
    public void playCard(String actionCommand, int id)
    {
       selectedCardIndex = id;
-
+      
       if (actionCommand.equals("Player"))
       {
          playerHandString = "Player";
@@ -251,19 +273,6 @@ class CardModel
          System.out.println("Computer Card - " + selectedCard);
       }
    }
-   public boolean getRanking(char stackVal, char handVal)
-   {
-      Card cardObj = new Card();
-
-      boolean result = cardObj.ranking(stackVal, handVal);
-
-      if(result == true)
-      {
-         return true;
-      }
-
-      return false;
-   }
 
    public Icon getComputerHandIcon(int card)
    {
@@ -274,37 +283,37 @@ class CardModel
    {
       return getIcon(playerHand.inspectCard(card));
    }
-
+   
    public Icon getPlayAreaHandIcon(int i)
    {
       return getIcon(playAreaHand.inspectCard(i));
    }
-
+   
    public Hand getComputerHand()
    {
       return computerHand;
    }
-
+   
    public Hand getPlayerHand()
    {
       return playerHand;
    }
-
+   
    public Hand getPlayAreaHand()
    {
       return playAreaHand;
    }
-
+   
    public Card getCard()
    {
       return new Card();
    }
-
+   
    public Icon getIcon(Card card)
    {
       return GUICard.getIcon(card);
    }
-
+   
 }
 
 class CardView extends JFrame 
@@ -314,13 +323,14 @@ class CardView extends JFrame
    JButton button = new JButton("Button");
    JButton playerButton = new JButton("Player Card");
    JButton computerButton = new JButton("Computer Card");
-
+   JButton timerButton = new JButton("Stop Timer");
+   
 
    public JPanel pnlComputerHand, pnlHumanHand, pnlPlayArea, pnlScoreBoard;
 
    private int numCardsPerHand;
    private int numPlayers;
-
+   
    ActionListener action;
 
    public CardView(String title, int numCardsPerHand, int numPlayers)
@@ -337,6 +347,7 @@ class CardView extends JFrame
       pnlHumanHand = new JPanel();
       pnlPlayArea = new JPanel();
       pnlScoreBoard = new JPanel();
+      JLabel timerLabel = new JLabel("Timer:", JLabel.CENTER);
 
       TitledBorder playerBorderTitle = 
             BorderFactory.createTitledBorder("Player Hand");
@@ -362,9 +373,11 @@ class CardView extends JFrame
       pnlComputerHand.setBorder(computerBorderTitle);
       pnlScoreBoard.setBorder(scoreBoardBorderTitle);
 
-      pnlScoreBoard.add(button);
-      pnlScoreBoard.add(playerButton);
-      pnlScoreBoard.add(computerButton);
+      //pnlScoreBoard.add(button);
+      //pnlScoreBoard.add(playerButton);
+      //pnlScoreBoard.add(computerButton);
+      //pnlScoreBoard.add(timerLabel);
+      pnlScoreBoard.add(timerButton);
 
       this.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.Y_AXIS));
 
@@ -382,12 +395,22 @@ class CardView extends JFrame
       this.add(pnlHumanHand);
       this.add(pnlScoreBoard);
    }
+   
+   public void setTimer(JLabel timerLabel)
+   {
+      this.pnlScoreBoard.add(timerLabel);
+   }
+
+   public void timerText(String string)
+   {
+      timerButton.setText(string);
+   }
 
    public void setActionListener(ActionListener listener)
    {
       this.action = listener;
    }
-
+   
    public void clearHands()
    {
       // TODO Auto-generated method stub
@@ -395,24 +418,25 @@ class CardView extends JFrame
       pnlHumanHand.removeAll();
       pnlPlayArea.removeAll();
    }
-
+   
    void addButtonListener(ActionListener listenForButton)
    {
       button.addActionListener(listenForButton);
       playerButton.addActionListener(listenForButton);
       computerButton.addActionListener(listenForButton);
+      timerButton.addActionListener(listenForButton);
    }
-
+   
    void addActionListener(ActionListener mouseListener)
    {
       this.action = mouseListener;
    }
-
+   
    public void addPlayAreaCard(Icon cardBack, int i)
    {
       // TODO Auto-generated method stub
       JLabel newCardLable = new JLabel(cardBack);
-
+      
       newCardLable.addMouseListener(new MouseInputAdapter() {
          public void mousePressed(MouseEvent click) {
             ActionEvent e = new ActionEvent((JLabel) click.getSource(), 
@@ -424,13 +448,13 @@ class CardView extends JFrame
       pnlPlayArea.add(newCardLable);
       this.revalidate();
       this.repaint();
-
+      
    }
 
    public void addComputerCard(Icon icon, int index)
    {
       JLabel newCardLable = new JLabel(icon);
-
+   
       newCardLable.addMouseListener(new MouseInputAdapter() {
          public void mousePressed(MouseEvent click) {
             ActionEvent e = new ActionEvent((JLabel) click.getSource(), 
@@ -447,7 +471,7 @@ class CardView extends JFrame
    public void addPlayerCard(Icon icon, int index)
    {
       JLabel newCardLable = new JLabel(icon);
-
+      
       newCardLable.addMouseListener(new MouseInputAdapter() {
          public void mousePressed(MouseEvent click) {
             ActionEvent e = new ActionEvent((JLabel) click.getSource(), 
@@ -455,7 +479,7 @@ class CardView extends JFrame
             action.actionPerformed(e);
          }
       });
-
+      
       pnlHumanHand.add(newCardLable);
       this.revalidate();
       this.repaint();
@@ -464,6 +488,121 @@ class CardView extends JFrame
    void displayErrorMessage(String errorMessage)
    {
       JOptionPane.showMessageDialog(this, errorMessage);
+   }
+}
+
+class Timer extends Thread {
+   long startTime;
+   boolean shouldRun;
+   JLabel timerLabel;
+   Object syncObject;
+   long timePaused;
+   long totalTimePaused;
+
+   Timer(JLabel timerLabel, Object syncObject) {
+       this.setSyncObject(syncObject);
+       this.setTimerLabel(timerLabel);
+       this.setShouldRun(true);
+       this.setTotalTimePaused(0);
+   }
+
+   public long getTimePaused() {
+       return this.timePaused;
+   }
+
+   public void setTimePaused(long timePaused) {
+       this.timePaused = timePaused;
+   }
+
+   public long getTotalTimePaused() {
+       return this.totalTimePaused;
+   }
+
+   public void setTotalTimePaused(long totalTimePaused) {
+       this.totalTimePaused = totalTimePaused;
+   }
+
+   private void setSyncObject(Object syncObject) {
+       this.syncObject = syncObject;
+   }
+
+   private void setTimerLabel(JLabel timerLabel) {
+       this.timerLabel = timerLabel;
+   }
+
+   public void stopTimer() {
+       this.setShouldRun(false);
+   }
+
+   public void startTimer() {
+       this.setShouldRun(true);
+   }
+
+   public boolean getShouldRun() {
+       return this.shouldRun;
+   }
+
+   private void setShouldRun(boolean shouldRun) {
+       this.shouldRun = shouldRun;
+   }
+
+   private void setStartTime(long startTime) {
+       this.startTime = startTime;
+   }
+
+   private long getElapsedSeconds() {
+       long elapsedTime = (System.currentTimeMillis() - this.startTime) - this.totalTimePaused;
+       long elapsedSeconds = elapsedTime / 1000;
+       return elapsedSeconds;
+   }
+
+   private long getDisplaySeconds() {
+       return this.getElapsedSeconds() % 60;
+   }
+
+   private long getElapsedMinutes() {
+       return this.getElapsedSeconds() / 60;
+   }
+
+   public void run() {
+       this.setStartTime(System.currentTimeMillis());
+       System.out.println("RUN");
+       while (true) {
+           if (!this.getShouldRun()) {
+               synchronized (syncObject) {
+                   try {
+                       this.setTimePaused(System.currentTimeMillis());
+                       syncObject.wait();
+                       long currentPausedTime = this.getTotalTimePaused();
+                       this.setTotalTimePaused(
+                               (System.currentTimeMillis() - this.getTimePaused()) + currentPausedTime);
+                   } catch (InterruptedException e) {
+                       e.printStackTrace();
+                   }
+               }
+           }
+
+           long elapsedTime = System.currentTimeMillis() - startTime;
+           long timeTillNextDisplayChange = 1000 - (elapsedTime % 1000);
+           try {
+               Thread.sleep(timeTillNextDisplayChange);
+           } catch (InterruptedException e) {
+               e.printStackTrace();
+           }
+           long minutes = this.getElapsedMinutes();
+           long seconds = this.getDisplaySeconds();
+           String displayMinutes = Long.toString(minutes);
+           String displaySeconds = Long.toString(seconds);
+
+           if (minutes < 10) {
+               displayMinutes = "0" + displayMinutes;
+           }
+           if (seconds < 10) {
+               displaySeconds = "0" + displaySeconds;
+           }
+
+           this.timerLabel.setText("Timer: " + displayMinutes + ":" + displaySeconds);
+       }
    }
 }
 
@@ -643,6 +782,34 @@ class Card
    {
       set('A', Suit.spades);
    }
+   
+   public  boolean ranking(char stackValue, char handValue )
+   {
+      int stack = 0;
+      int hand = 0;
+
+      //sets index vars for comparision
+      for(int i = 0; i < valueRanks.length; i++ )
+      {
+
+         if(stackValue == valueRanks[i])
+         {
+            stack = i;
+         }
+
+         if(handValue == valueRanks[i])
+         {
+            hand = i;
+         }
+      }
+
+      if(hand == (stack + 1) || hand == (stack - 1))
+      {
+         return true;
+      }
+
+       return false;
+   }
 
    public boolean set(char value, Suit suit)
    {
@@ -711,35 +878,6 @@ class Card
       return false;
    }
 
-   //checks if card val is 1+ 1- the selected card
-   public  boolean ranking(char stackValue, char handValue )
-   {
-      int stack = 0;
-      int hand = 0;
-
-      //sets index vars for comparision
-      for(int i = 0; i < valueRanks.length; i++ )
-      {
-
-         if(stackValue == valueRanks[i])
-         {
-            stack = i;
-         }
-
-         if(handValue == valueRanks[i])
-         {
-            hand = i;
-         }
-      }
-
-      if(hand == (stack + 1) || hand == (stack - 1))
-      {
-         return true;
-      }
-
-       return false;
-   }
-
    static Card[] arraySort(Card[] cards, int arraySize)
    {
       Card temp;
@@ -787,7 +925,7 @@ class Hand
 
       Card newCard = new Card(card.getValue(), card.getSuit());
 //      System.out.println(newCard);
-
+      
       if (numCards > MAX_CARDS)
       {
          return false;
@@ -819,11 +957,11 @@ class Hand
 
       return card;
    }
-
+   
    public void setCard(int cardIndex, Card card)
    {
       myCards[cardIndex] = card;
-
+      
    }
 
    public Card playCard()
