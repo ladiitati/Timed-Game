@@ -52,7 +52,7 @@ class CardController
       }
       for(int i = 0; i < cardModel.getComputerHand().getNumCards(); i++)
       {         
-         cardView.addComputerCard(cardModel.getComputerHandIcon(i), i);
+         cardView.addComputerCard(cardModel.getCardBack(), i);
       }
       
       for(int i = 0; i < cardModel.getPlayAreaHand().getNumCards(); i++)
@@ -92,7 +92,6 @@ class CardController
             }
             else
             {  
-               //JLabel label = (JLabel) e.getSource();
                 if (!e.getActionCommand().equals("PlayArea"))
                 {
                    cardModel.playCard(e.getID());
@@ -118,7 +117,11 @@ class CardController
             refreshBoard();
             cardModel.checkTurns();
             refreshBoard();
-            cardModel.checkGameEnd();
+            boolean endGame = cardModel.checkGameEnd();
+
+            if(endGame == true){
+               cardView.displayEndScreen(cardModel.getResults());
+            }
           
          } catch (NumberFormatException ex)
          {
@@ -291,10 +294,12 @@ class CardModel
 	  		}
 	  }
    
-   public void checkGameEnd() {
+   public boolean checkGameEnd() {
 	   if (deck.getNumCards() <= 0) {
-		   System.out.println("No more cards in the deck!");
-	   }
+         System.out.println("No more cards in the deck!");
+         return true;
+      }
+      return false;
    }
    
    public String getResults() {
@@ -398,9 +403,13 @@ class CardView extends JFrame
    static int MAX_CARDS_PER_HAND = 56;
    static int MAX_PLAYERS = 2; // for now, we only allow 2 person games
    JButton playerPass = new JButton("Can't play card");
+   JLabel timerLabel = new JLabel("Timer:", JLabel.CENTER);
+   JButton timerButton = new JButton("Stop Timer");
+   Object syncObject = new Object();
+   Timer timer = new Timer(timerLabel, syncObject);
    
 
-   public JPanel pnlComputerHand, pnlHumanHand, pnlPlayArea, pnlButtons;
+   public JPanel pnlComputerHand, pnlHumanHand, pnlPlayArea, pnlButtons, pnlTimer;
 
    private int numCardsPerHand;
    private int numPlayers;
@@ -421,6 +430,7 @@ class CardView extends JFrame
       pnlHumanHand = new JPanel();
       pnlPlayArea = new JPanel();
       pnlButtons = new JPanel();
+      pnlTimer = new JPanel();
 
       TitledBorder playerBorderTitle = 
             BorderFactory.createTitledBorder("Player Hand");
@@ -433,33 +443,62 @@ class CardView extends JFrame
       FlowLayout cmpHandLayout = new FlowLayout();
       FlowLayout playAreaLayout = new FlowLayout(FlowLayout.CENTER, 50, 50);
       FlowLayout cmpButtonsLayout = new FlowLayout();
+      FlowLayout timerAreaLayout = new FlowLayout();
 
       pnlComputerHand.setLayout(cmpHandLayout);
       pnlHumanHand.setLayout(plyHandLayout);
       pnlPlayArea.setLayout(playAreaLayout);
       pnlButtons.setLayout(cmpButtonsLayout);
+      pnlTimer.setLayout(timerAreaLayout);
 
       pnlPlayArea.setBorder(playAreaBorderTitle);
       pnlHumanHand.setBorder(playerBorderTitle);
       pnlComputerHand.setBorder(computerBorderTitle);
       
       pnlButtons.add(playerPass);
+      pnlTimer.add(timerLabel);
+      pnlTimer.add(timerButton);
 
       this.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.Y_AXIS));
 
       pnlComputerHand.setAlignmentX(Component.CENTER_ALIGNMENT);
       pnlComputerHand.setPreferredSize(new Dimension(50, 70));
       pnlHumanHand.setAlignmentX(Component.CENTER_ALIGNMENT);
-      pnlHumanHand.setPreferredSize(new Dimension(50, 70));
+      pnlHumanHand.setPreferredSize(new Dimension(60, 70));
       pnlButtons.setAlignmentX(Component.CENTER_ALIGNMENT);
-      pnlButtons.setPreferredSize(new Dimension(50, 10));
+      pnlButtons.setPreferredSize(new Dimension(20, 10));
       pnlPlayArea.setAlignmentX(Component.CENTER_ALIGNMENT);
-      pnlPlayArea.setPreferredSize(new Dimension(50, 150));
+      pnlPlayArea.setPreferredSize(new Dimension(60, 150));
+      pnlTimer.setAlignmentX(Component.CENTER_ALIGNMENT);
+      pnlTimer.setPreferredSize(new Dimension(5, 5));
 
       this.add(pnlComputerHand);
       this.add(pnlPlayArea);
       this.add(pnlHumanHand);
       this.add(pnlButtons);
+      this.add(pnlTimer);
+      this.setTimerListener();
+      timer.start();
+   }
+
+   private void setTimerListener() {
+      timerButton.addMouseListener(new MouseInputAdapter() {
+         @Override
+         public void mousePressed(MouseEvent click) {
+             boolean shouldRun = timer.getShouldRun();
+   
+             if (shouldRun) {
+                 timer.stopTimer();
+                 timerButton.setText("Start Timer");
+             } else {
+                 timer.startTimer();
+                 synchronized (syncObject) {
+                     syncObject.notify();
+                 }
+                 timerButton.setText("Stop Timer");
+             }
+         }
+     });
    }
    
    public void setActionListener(ActionListener listener)
@@ -546,6 +585,121 @@ class CardView extends JFrame
    void displayEndScreen(String results) {
        JOptionPane.showMessageDialog(null, results);
        System.exit(0);
+   }
+}
+
+class Timer extends Thread {
+   long startTime;
+   boolean shouldRun;
+   JLabel timerLabel;
+   Object syncObject;
+   long timePaused;
+   long totalTimePaused;
+
+   Timer(JLabel timerLabel, Object syncObject) {
+       this.setSyncObject(syncObject);
+       this.setTimerLabel(timerLabel);
+       this.setShouldRun(true);
+       this.setTotalTimePaused(0);
+   }
+
+   public long getTimePaused() {
+       return this.timePaused;
+   }
+
+   public void setTimePaused(long timePaused) {
+       this.timePaused = timePaused;
+   }
+
+   public long getTotalTimePaused() {
+       return this.totalTimePaused;
+   }
+
+   public void setTotalTimePaused(long totalTimePaused) {
+       this.totalTimePaused = totalTimePaused;
+   }
+
+   private void setSyncObject(Object syncObject) {
+       this.syncObject = syncObject;
+   }
+
+   private void setTimerLabel(JLabel timerLabel) {
+       this.timerLabel = timerLabel;
+   }
+
+   public void stopTimer() {
+       this.setShouldRun(false);
+   }
+
+   public void startTimer() {
+       this.setShouldRun(true);
+   }
+
+   public boolean getShouldRun() {
+       return this.shouldRun;
+   }
+
+   private void setShouldRun(boolean shouldRun) {
+       this.shouldRun = shouldRun;
+   }
+
+   private void setStartTime(long startTime) {
+       this.startTime = startTime;
+   }
+
+   private long getElapsedSeconds() {
+       long elapsedTime = (System.currentTimeMillis() - this.startTime) - this.totalTimePaused;
+       long elapsedSeconds = elapsedTime / 1000;
+       return elapsedSeconds;
+   }
+
+   private long getDisplaySeconds() {
+       return this.getElapsedSeconds() % 60;
+   }
+
+   private long getElapsedMinutes() {
+       return this.getElapsedSeconds() / 60;
+   }
+
+   public void run() {
+       this.setStartTime(System.currentTimeMillis());
+
+       while (true) {
+           if (!this.getShouldRun()) {
+               synchronized (syncObject) {
+                   try {
+                       this.setTimePaused(System.currentTimeMillis());
+                       syncObject.wait();
+                       long currentPausedTime = this.getTotalTimePaused();
+                       this.setTotalTimePaused(
+                               (System.currentTimeMillis() - this.getTimePaused()) + currentPausedTime);
+                   } catch (InterruptedException e) {
+                       e.printStackTrace();
+                   }
+               }
+           }
+
+           long elapsedTime = System.currentTimeMillis() - startTime;
+           long timeTillNextDisplayChange = 1000 - (elapsedTime % 1000);
+           try {
+               Thread.sleep(timeTillNextDisplayChange);
+           } catch (InterruptedException e) {
+               e.printStackTrace();
+           }
+           long minutes = this.getElapsedMinutes();
+           long seconds = this.getDisplaySeconds();
+           String displayMinutes = Long.toString(minutes);
+           String displaySeconds = Long.toString(seconds);
+
+           if (minutes < 10) {
+               displayMinutes = "0" + displayMinutes;
+           }
+           if (seconds < 10) {
+               displaySeconds = "0" + displaySeconds;
+           }
+
+           this.timerLabel.setText("Timer: " + displayMinutes + ":" + displaySeconds);
+       }
    }
 }
 
