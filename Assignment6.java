@@ -441,7 +441,6 @@ class CardView extends JFrame {
    }
 
    public void clearHands() {
-      // TODO Auto-generated method stub
       pnlComputerHand.removeAll();
       pnlHumanHand.removeAll();
       pnlPlayArea.removeAll();
